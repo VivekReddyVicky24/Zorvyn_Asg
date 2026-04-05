@@ -20,6 +20,7 @@ Use these pre-seeded accounts to test role-based access:
 
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [API Endpoints](#api-endpoints)
 - [Role-Based Access Control](#role-based-access-control)
@@ -59,6 +60,77 @@ Use these pre-seeded accounts to test role-based access:
 | nodemon | Development hot-reload |
 
 ---
+
+## Architecture
+
+The request flows through six distinct layers before reaching the database:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        CLIENT / SWAGGER UI                       │
+│                   HTTP Request  (Bearer Token)                   │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                         MIDDLEWARE                               │
+│                                                                  │
+│   Rate Limiter  ──►  CORS  ──►  express.json()                  │
+│   (100 req / 15 min per IP)                                      │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                           ROUTING                                │
+│                                                                  │
+│   /api/users        /api/records        /api/dashboard           │
+└──────┬──────────────────────┬───────────────────┬───────────────┘
+       │                      │                   │
+       ▼                      ▼                   ▼
+┌──────────────┐   ┌──────────────────────────────────────────┐
+│  Validate    │   │           AUTH MIDDLEWARE                 │
+│  Middleware  │   │                                           │
+│ (register    │   │  authMiddleware  ──►  roleMiddleware      │
+│  only)       │   │  JWT verify          authorizeRoles()     │
+└──────┬───────┘   └──────────────────────┬───────────────────┘
+       │                                  │
+       └──────────────┬───────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        CONTROLLERS                               │
+│                                                                  │
+│  userController    recordController    dashboardController       │
+│  register/login    CRUD + filter       income / expense /        │
+│  list users        paginate / search   balance / breakdown       │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      MONGOOSE MODELS                             │
+│                                                                  │
+│         User Model                    Record Model               │
+│  name · email · password       amount · type · category          │
+│  role · isActive               date · notes · isDeleted          │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                           MONGODB                                │
+│                   mongoose.connect(MONGO_URI)                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Layer breakdown:**
+
+| Layer | Components | Responsibility |
+|---|---|---|
+| Middleware | Rate Limiter, CORS, JSON Parser | Request filtering, parsing, abuse protection |
+| Routing | userRoutes, recordRoutes, dashboardRoutes | Map URL paths to handlers |
+| Auth | authMiddleware, roleMiddleware | Verify JWT, enforce role permissions |
+| Validation | validateMiddleware (register only) | Sanitize and validate request body |
+| Controllers | userController, recordController, dashboardController | Business logic and response shaping |
+| Data Layer | User Model, Record Model, MongoDB | Persistence via Mongoose ODM |
 
 ## Project Structure
 
