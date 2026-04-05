@@ -28,7 +28,7 @@ app.use("/api/records", recordRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.send("Zoorvyn Finance API is Running...");
 });
 
 app.use(errorHandler);
