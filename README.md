@@ -63,62 +63,67 @@ Use these pre-seeded accounts to test role-based access:
 
 ## Architecture
 
-The request flows through six distinct layers before reaching the database:
+```mermaid
+graph TD
+    User((Client / Swagger UI))
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT / SWAGGER UI                       │
-│                   HTTP Request  (Bearer Token)                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         MIDDLEWARE                               │
-│                                                                  │
-│   Rate Limiter  ──►  CORS  ──►  express.json()                  │
-│   (100 req / 15 min per IP)                                      │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                           ROUTING                                │
-│                                                                  │
-│   /api/users        /api/records        /api/dashboard           │
-└──────┬──────────────────────┬───────────────────┬───────────────┘
-       │                      │                   │
-       ▼                      ▼                   ▼
-┌──────────────┐   ┌──────────────────────────────────────────┐
-│  Validate    │   │           AUTH MIDDLEWARE                 │
-│  Middleware  │   │                                           │
-│ (register    │   │  authMiddleware  ──►  roleMiddleware      │
-│  only)       │   │  JWT verify          authorizeRoles()     │
-└──────┬───────┘   └──────────────────────┬───────────────────┘
-       │                                  │
-       └──────────────┬───────────────────┘
-                      │
-                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                        CONTROLLERS                               │
-│                                                                  │
-│  userController    recordController    dashboardController       │
-│  register/login    CRUD + filter       income / expense /        │
-│  list users        paginate / search   balance / breakdown       │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      MONGOOSE MODELS                             │
-│                                                                  │
-│         User Model                    Record Model               │
-│  name · email · password       amount · type · category          │
-│  role · isActive               date · notes · isDeleted          │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                           MONGODB                                │
-│                   mongoose.connect(MONGO_URI)                    │
-└─────────────────────────────────────────────────────────────────┘
+    subgraph Frontend [Presentation Layer]
+        SwaggerUI[Swagger UI - /api-docs]
+        HTTPClient[HTTP Client]
+    end
+
+    subgraph Middleware [Middleware Layer - Express]
+        RateLimit[Rate Limiter - 100 req / 15 min]
+        CORS[CORS Handler]
+        JSONParser[JSON Parser]
+    end
+
+    subgraph Routing [Routing Layer]
+        UserRoutes[User Routes - /api/users]
+        RecordRoutes[Record Routes - /api/records]
+        DashRoutes[Dashboard Routes - /api/dashboard]
+    end
+
+    subgraph Auth [Auth Layer]
+        AuthMW[Auth Middleware - JWT Verify]
+        RoleMW[Role Middleware - authorizeRoles]
+        ValidateMW[Validate Middleware - express-validator]
+    end
+
+    subgraph Controllers [Controller Layer]
+        UserCtrl[User Controller - register / login / list]
+        RecordCtrl[Record Controller - CRUD + filter + paginate]
+        DashCtrl[Dashboard Controller - income / expense / balance]
+    end
+
+    subgraph Data [Data Layer - Mongoose ODM]
+        UserModel[(User Model)]
+        RecordModel[(Record Model)]
+    end
+
+    MongoDB[(MongoDB)]
+
+    User --> SwaggerUI
+    User --> HTTPClient
+    SwaggerUI --> RateLimit
+    HTTPClient --> RateLimit
+    RateLimit --> CORS
+    CORS --> JSONParser
+    JSONParser --> UserRoutes
+    JSONParser --> RecordRoutes
+    JSONParser --> DashRoutes
+    UserRoutes --> ValidateMW
+    RecordRoutes --> AuthMW
+    DashRoutes --> AuthMW
+    ValidateMW --> UserCtrl
+    AuthMW --> RoleMW
+    RoleMW --> RecordCtrl
+    RoleMW --> DashCtrl
+    UserCtrl --> UserModel
+    RecordCtrl --> RecordModel
+    DashCtrl --> RecordModel
+    UserModel --> MongoDB
+    RecordModel --> MongoDB
 ```
 
 **Layer breakdown:**
@@ -301,7 +306,3 @@ Bearer YOUR_TOKEN_HERE
 **Step 4 —** All subsequent requests will include your token automatically. Try switching between different role credentials to observe access differences.
 
 ---
-
-## License
-
-ISC © [Vivek Reddy](https://github.com/VivekReddyVicky24)
