@@ -1,25 +1,35 @@
-# 🏦 Zorvyn — Finance Dashboard API
+# Zorvyn — Finance Dashboard API
 
 > A secure, role-based RESTful API for financial record management, built with Node.js, Express, MongoDB, and JWT authentication. Fully documented with Swagger UI.
 
 ---
 
-## 📌 Table of Contents
+## Test Credentials
 
-- [Overview](#-overview)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Architecture](#-architecture)
-- [API Endpoints](#-api-endpoints)
-- [Role-Based Access Control](#-role-based-access-control)
-- [Getting Started](#-getting-started)
-- [Test Credentials](#-test-credentials)
-- [How to Test with Swagger](#-how-to-test-with-swagger)
-- [Environment Variables](#-environment-variables)
+Use these pre-seeded accounts to test role-based access:
+
+| Role | Email | Password | Access Level |
+|---|---|---|---|
+| Viewer | viewer@test.com | 123456 | Read only — view records and dashboard |
+| Analyst | analyst@test.com | 123456 | Read + dashboard insights |
+| Admin | admin@test.com | 123456 | Full CRUD access |
 
 ---
 
-## 🌐 Overview
+## Table of Contents
+
+- [Overview](#overview)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [Role-Based Access Control](#role-based-access-control)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [How to Test with Swagger](#how-to-test-with-swagger)
+
+---
+
+## Overview
 
 **Zorvyn** is a production-ready backend API designed for financial dashboards. It enables organizations to manage income and expense records with fine-grained access control, ensuring users only see and do what their role permits.
 
@@ -35,29 +45,26 @@
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Runtime** | Node.js | JavaScript runtime |
-| **Framework** | Express.js v5 | HTTP server & routing |
-| **Database** | MongoDB + Mongoose | Data persistence & ODM |
-| **Auth** | JSON Web Tokens (JWT) | Stateless authentication |
-| **Security** | bcryptjs | Password hashing |
-| **Validation** | express-validator | Input sanitization & validation |
-| **Rate Limiting** | express-rate-limit | Abuse prevention |
-| **CORS** | cors | Cross-origin request handling |
-| **Config** | dotenv | Environment variable management |
-| **API Docs** | swagger-jsdoc + swagger-ui-express | Interactive API documentation |
-| **Dev Tool** | nodemon | Hot-reload during development |
+| Technology | Purpose |
+|---|---|
+| Node.js + Express.js v5 | Runtime and HTTP server |
+| MongoDB + Mongoose | Database and ODM |
+| JSON Web Tokens (JWT) | Stateless authentication |
+| bcryptjs | Password hashing |
+| express-validator | Input validation |
+| express-rate-limit | Abuse prevention (100 req / 15 min) |
+| swagger-jsdoc + swagger-ui-express | Interactive API documentation |
+| nodemon | Development hot-reload |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Zorvyn/
-├── server.js                  # App entry point — Express setup, DB connection, route wiring
+├── server.js                  # Entry point — Express setup, DB connection, route wiring
 │
 ├── config/
 │   └── swagger.js             # Swagger/OpenAPI 3.0 configuration
@@ -76,7 +83,7 @@ Zorvyn/
 │   ├── authMiddleware.js      # JWT token verification (protect)
 │   ├── roleMiddleware.js      # Role-based access gate (authorizeRoles)
 │   ├── validateMiddleware.js  # express-validator error handler
-│   ├── rateLimiter.js         # 100 req/15min IP-based limiter
+│   ├── rateLimiter.js         # IP-based rate limiter
 │   └── errorMiddleware.js     # Global error handler
 │
 ├── models/
@@ -89,24 +96,24 @@ Zorvyn/
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
-### 👤 Users
+### Users
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `POST` | `/api/users/register` | ❌ Public | Register a new user |
-| `POST` | `/api/users/login` | ❌ Public | Login and receive JWT token |
-| `GET` | `/api/users/` | ✅ Bearer Token | Get all users |
+| `POST` | `/api/users/register` | Public | Register a new user |
+| `POST` | `/api/users/login` | Public | Login and receive JWT token |
+| `GET` | `/api/users/` | Bearer Token | Get all users |
 
-### 📋 Records
+### Records
 
 | Method | Endpoint | Auth | Role Required | Description |
 |---|---|---|---|---|
-| `POST` | `/api/records/` | ✅ Bearer Token | `admin` | Create a financial record |
-| `GET` | `/api/records/` | ✅ Bearer Token | `viewer`, `analyst`, `admin` | List records with filters & pagination |
-| `PUT` | `/api/records/:id` | ✅ Bearer Token | `admin` | Update a record |
-| `DELETE` | `/api/records/:id` | ✅ Bearer Token | `admin` | Soft-delete a record |
+| `POST` | `/api/records/` | Bearer Token | `admin` | Create a financial record |
+| `GET` | `/api/records/` | Bearer Token | `viewer`, `analyst`, `admin` | List records with filters and pagination |
+| `PUT` | `/api/records/:id` | Bearer Token | `admin` | Update a record |
+| `DELETE` | `/api/records/:id` | Bearer Token | `admin` | Soft-delete a record |
 
 **Query Parameters for `GET /api/records/`:**
 
@@ -115,49 +122,38 @@ Zorvyn/
 | `page` | number | `1` | Page number |
 | `limit` | number | `5` | Records per page |
 | `search` | string | `salary` | Search by category or notes |
-| `type` | string | `income` | Filter by type: `income` or `expense` |
+| `type` | string | `income` | Filter by `income` or `expense` |
 | `category` | string | `food` | Filter by category name |
 | `startDate` | date | `2024-01-01` | Date range filter start |
 | `endDate` | date | `2024-12-31` | Date range filter end |
 
-### 📊 Dashboard
+### Dashboard
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/dashboard/` | ✅ Bearer Token | Get total income, expense, balance, category breakdown & recent 5 records |
+| `GET` | `/api/dashboard/` | Bearer Token | Total income, expense, balance, category breakdown, and recent 5 records |
 
 ---
 
-## 🔐 Role-Based Access Control
+## Role-Based Access Control
 
 Zorvyn enforces a three-tier permission model using JWT claims and route-level middleware:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     ROLE PERMISSIONS                     │
-├────────────┬──────────┬───────────────┬─────────────────┤
-│  Feature   │  Viewer  │    Analyst    │      Admin      │
-├────────────┼──────────┼───────────────┼─────────────────┤
-│ View Records│   ✅    │      ✅       │       ✅        │
-│ Dashboard  │   ✅    │      ✅       │       ✅        │
-│ Create     │   ❌    │      ❌       │       ✅        │
-│ Update     │   ❌    │      ❌       │       ✅        │
-│ Delete     │   ❌    │      ❌       │       ✅        │
-└────────────┴──────────┴───────────────┴─────────────────┘
-```
+| Feature | Viewer | Analyst | Admin |
+|---|---|---|---|
+| View Records | Yes | Yes | Yes |
+| Dashboard | Yes | Yes | Yes |
+| Create Record | No | No | Yes |
+| Update Record | No | No | Yes |
+| Delete Record | No | No | Yes |
 
 Roles are assigned at registration and embedded in the JWT payload. Every protected route first verifies the token (`authMiddleware`), then checks the user's role (`roleMiddleware`).
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
-### Prerequisites
-
-- Node.js v18+
-- MongoDB (local or Atlas)
-
-### Installation
+**Prerequisites:** Node.js v18+, MongoDB (local or Atlas)
 
 ```bash
 # 1. Clone the repository
@@ -182,7 +178,7 @@ The server runs on `http://localhost:5000` by default.
 
 ---
 
-## 🌍 Environment Variables
+## Environment Variables
 
 Create a `.env` file in the project root:
 
@@ -200,34 +196,7 @@ JWT_SECRET=your_super_secret_jwt_key
 
 ---
 
-## 🔑 Test Credentials
-
-Use these pre-seeded accounts to test role-based access:
-
-### 👤 Viewer — Read Only
-```
-Email:    viewer@test.com
-Password: 123456
-```
-Can view records and dashboard. Cannot create, update, or delete.
-
-### 📊 Analyst — Read + Insights
-```
-Email:    analyst@test.com
-Password: 123456
-```
-Can view records and access the dashboard summary.
-
-### ⚡ Admin — Full Access
-```
-Email:    admin@test.com
-Password: 123456
-```
-Full CRUD access on records, plus all viewer/analyst capabilities.
-
----
-
-## 🧪 How to Test with Swagger
+## How to Test with Swagger
 
 Swagger UI is available at: **`http://localhost:5000/api-docs`**
 
@@ -250,7 +219,7 @@ Content-Type: application/json
 ```
 
 **Step 3 — Authorize in Swagger UI:**
-1. Click the **Authorize** 🔒 button at the top right of Swagger UI
+1. Click the **Authorize** button at the top right of Swagger UI
 2. Paste your token in this format:
 ```
 Bearer YOUR_TOKEN_HERE
@@ -261,6 +230,6 @@ Bearer YOUR_TOKEN_HERE
 
 ---
 
-## 📄 License
+## License
 
 ISC © [Vivek Reddy](https://github.com/VivekReddyVicky24)
