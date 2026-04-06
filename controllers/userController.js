@@ -12,13 +12,20 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Validate role - only allow viewer or analyst during registration
+    if (role && !["viewer", "analyst"].includes(role)) {
+      return res.status(400).json({ 
+        message: "Invalid role. Only 'viewer' or 'analyst' roles are allowed during registration. Admin role can only be assigned manually." 
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
-      role,
+      role: role || "viewer",
     });
 
     res.status(201).json({
